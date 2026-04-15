@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StabilityQC — Control de Estudios de Estabilidad</title>
+<link rel="stylesheet" href="css/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">
+    <span class="logo-mark"></span>
+    <span class="logo-text">StabilityQC</span>
+    <span class="logo-tag">GxP · v1.0</span>
+  </div>
+  <nav class="nav" id="main-nav">
+    <button class="nav-btn active" data-page="dashboard">Dashboard</button>
+    <button class="nav-btn" data-page="results">Resultados</button>
+    <button class="nav-btn" data-page="full">Detalle</button>
+    <button class="nav-btn" data-page="form">Nuevo estudio</button>
+    <button class="nav-btn" data-page="audit">Auditoría</button>
+  </nav>
+  <div class="user-info">
+    <div class="avatar">MG</div>
+    <div class="user-meta">
+      <span class="user-name">M. García</span>
+      <span class="user-role">Analista</span>
+    </div>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- ===== DASHBOARD ===== -->
+  <section class="page active" id="pg-dashboard">
+    <div class="dash-filter-bar">
+      <span class="loc-label">Filtrar por planta:</span>
+      <div class="loc-pills">
+        <button class="loc-pill active" data-dash-loc="todas">Todas las plantas</button>
+        <button class="loc-pill" data-dash-loc="p1">Planta 1</button>
+        <button class="loc-pill" data-dash-loc="p2">Planta 2</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi kpi-info"><div class="kpi-label">En curso</div><div class="kpi-val" id="k-curso">—</div><div class="kpi-sub">estudios activos</div></div>
+      <div class="kpi kpi-danger"><div class="kpi-label">Vencidos</div><div class="kpi-val" id="k-venc">—</div><div class="kpi-sub">sin completar</div></div>
+      <div class="kpi kpi-warning"><div class="kpi-label">Próx. a vencer</div><div class="kpi-val" id="k-prox">—</div><div class="kpi-sub">en 30 días</div></div>
+      <div class="kpi kpi-success"><div class="kpi-label">% Cumplimiento</div><div class="kpi-val" id="k-cump">—</div><div class="kpi-sub">período actual</div></div>
+      <div class="kpi kpi-danger"><div class="kpi-label">OOS activos</div><div class="kpi-val" id="k-oos">—</div><div class="kpi-sub">en investigación</div></div>
+      <div class="kpi kpi-warning"><div class="kpi-label">Aprob. pendientes</div><div class="kpi-val" id="k-aprob">—</div><div class="kpi-sub">esperando firma</div></div>
+    </div>
+
+    <div class="chart-row">
+      <div class="card">
+        <div class="card-title" id="trend-title">Tendencia de cumplimiento por quarter — Todas las plantas</div>
+        <div class="bar-chart" id="trend-chart"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Estado de estudios</div>
+        <div class="donut-wrap">
+          <svg viewBox="0 0 110 110">
+            <circle cx="55" cy="55" r="42" fill="none" stroke="var(--border)" stroke-width="14"/>
+            <circle id="donut-arc" cx="55" cy="55" r="42" fill="none" stroke="var(--accent)" stroke-width="14"
+              stroke-dasharray="230 264" stroke-dashoffset="66" stroke-linecap="round"
+              style="transition:stroke-dasharray .6s ease"/>
+          </svg>
+          <div class="donut-center">
+            <div class="donut-pct" id="donut-num">—</div>
+            <div class="donut-lbl">cumpl.</div>
+          </div>
+        </div>
+        <div class="legend-items" id="legend-items"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Estudios próximos a vencer (próximos 30 días)</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Producto</th><th>Lote</th><th>Condiciones</th><th>F. límite</th><th>Días rest.</th><th>Ubicación</th><th>Estado</th></tr></thead>
+          <tbody id="dash-expiring-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== RESULTS ===== -->
+  <section class="page" id="pg-results">
+    <div class="filter-bar">
+
+      <div class="multi-filter-wrap">
+        <button class="multi-filter-btn" id="mf-btn-estado" onclick="toggleMultiFilter('estado')">Estado <span class="mf-count hidden" id="mf-count-estado"></span>▾</button>
+        <div class="multi-filter-dropdown hidden" id="mf-drop-estado">
+          <label class="mf-option"><input type="checkbox" value="Pendiente"> Pendiente</label>
+          <label class="mf-option"><input type="checkbox" value="En proceso"> En proceso</label>
+          <label class="mf-option"><input type="checkbox" value="Completo"> Completo</label>
+          <label class="mf-option"><input type="checkbox" value="Cancelado"> Cancelado</label>
+        </div>
+      </div>
+
+      <div class="multi-filter-wrap">
+        <button class="multi-filter-btn" id="mf-btn-planta" onclick="toggleMultiFilter('planta')">Planta <span class="mf-count hidden" id="mf-count-planta"></span>▾</button>
+        <div class="multi-filter-dropdown hidden" id="mf-drop-planta">
+          <label class="mf-option"><input type="checkbox" value="Planta 1"> Planta 1</label>
+          <label class="mf-option"><input type="checkbox" value="Planta 2"> Planta 2</label>
+        </div>
+      </div>
+
+      <div class="multi-filter-wrap">
+        <button class="multi-filter-btn" id="mf-btn-ubic" onclick="toggleMultiFilter('ubic')">Ubicación física <span class="mf-count hidden" id="mf-count-ubic"></span>▾</button>
+        <div class="multi-filter-dropdown hidden" id="mf-drop-ubic">
+          <label class="mf-option"><input type="checkbox" value="Campana N°1"> Campana N°1</label>
+          <label class="mf-option"><input type="checkbox" value="Campana N°2"> Campana N°2</label>
+          <label class="mf-option"><input type="checkbox" value="Campana N°3"> Campana N°3</label>
+          <label class="mf-option"><input type="checkbox" value="Campana N°4"> Campana N°4</label>
+          <label class="mf-option"><input type="checkbox" value="Campana N°5"> Campana N°5</label>
+          <label class="mf-option"><input type="checkbox" value="Campana N°6"> Campana N°6</label>
+          <label class="mf-option"><input type="checkbox" value="Campana N°7"> Campana N°7</label>
+          <label class="mf-option"><input type="checkbox" value="Refrigeración A"> Refrigeración A</label>
+          <label class="mf-option"><input type="checkbox" value="Refrigeración B"> Refrigeración B</label>
+          <label class="mf-option"><input type="checkbox" value="Estufa 1"> Estufa 1</label>
+          <label class="mf-option"><input type="checkbox" value="Zona controlada"> Zona controlada</label>
+        </div>
+      </div>
+
+      <div class="multi-filter-wrap">
+        <button class="multi-filter-btn" id="mf-btn-div" onclick="toggleMultiFilter('div')">División <span class="mf-count hidden" id="mf-count-div"></span>▾</button>
+        <div class="multi-filter-dropdown hidden" id="mf-drop-div">
+          <label class="mf-option"><input type="checkbox" value="CH"> CH</label>
+          <label class="mf-option"><input type="checkbox" value="PH"> PH</label>
+        </div>
+      </div>
+
+      <div class="multi-filter-wrap">
+        <button class="multi-filter-btn" id="mf-btn-oos" onclick="toggleMultiFilter('oos')">OOS <span class="mf-count hidden" id="mf-count-oos"></span>▾</button>
+        <div class="multi-filter-dropdown hidden" id="mf-drop-oos">
+          <label class="mf-option"><input type="checkbox" value="si"> Con OOS</label>
+          <label class="mf-option"><input type="checkbox" value="no"> Sin OOS</label>
+        </div>
+      </div>
+
+      <input id="f-search" class="filter-input" placeholder="Buscar producto o lote...">
+      <button class="btn btn-ghost btn-sm" id="btn-clear-filters" style="color:var(--danger);border-color:var(--danger-light)">✕ Limpiar</button>
+
+      <div class="filter-actions">
+        <button class="btn btn-primary" id="btn-new">+ Nuevo estudio</button>
+        <div class="export-wrap">
+          <button class="btn btn-ghost" id="btn-export-toggle">Exportar ▾</button>
+          <div class="export-dropdown hidden" id="export-dropdown">
+            <button class="export-opt" id="btn-export-csv">CSV (.csv)</button>
+            <button class="export-opt" id="btn-export-xlsx">Excel (.xlsx)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="active-filters" id="active-filters"></div>
+
+    <div class="table-wrap">
+      <table id="res-table">
+        <thead><tr>
+          <th data-sort="prod">Producto ↕</th>
+          <th data-sort="lote">Lote</th>
+          <th>Condiciones</th>
+          <th>T. estab.</th>
+          <th>F. ingreso</th>
+          <th>F. teórica</th>
+          <th data-sort="limite">F. límite ↕</th>
+          <th>Estado</th>
+          <th>OOS</th>
+          <th>Planta</th>
+          <th>Ubicación fís.</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="res-tbody"></tbody>
+      </table>
+    </div>
+    <div id="no-results" class="no-results hidden">Sin resultados para los filtros aplicados.</div>
+    <div class="table-footer" id="table-footer"></div>
+  </section>
+
+  <!-- ===== DETAIL ===== -->
+  <section class="page" id="pg-full">
+    <div id="full-content"></div>
+  </section>
+
+  <!-- ===== FORM ===== -->
+  <section class="page" id="pg-form">
+    <div class="form-container">
+      <div class="form-header">
+        <div>
+          <h2 class="form-title">Nuevo estudio de estabilidad</h2>
+          <p class="form-subtitle">Los campos marcados con <span class="req-star">*</span> son obligatorios</p>
+        </div>
+        <button class="btn btn-ghost" id="btn-cancel-form">Cancelar</button>
+      </div>
+
+      <div class="card form-card">
+
+        <div class="form-section-head">Identificación y ubicación</div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Planta <span class="req-star">*</span></label>
+            <select id="fp-planta"><option value="">Seleccionar...</option><option>Planta 1</option><option>Planta 2</option></select>
+          </div>
+          <div class="field">
+            <label>Ubicación física <span class="req-star">*</span></label>
+            <select id="fp-ubicfis"><option value="">— seleccione planta primero —</option></select>
+          </div>
+          <div class="field">
+            <label>División <span class="req-star">*</span></label>
+            <select id="fp-div"><option value="">Seleccionar...</option><option>CH</option><option>PH</option></select>
+          </div>
+          <div class="field">
+            <label>Código de producto <span class="req-star">*</span></label>
+            <input id="fp-cod" placeholder="Ej: PRD-00421">
+          </div>
+          <div class="field">
+            <label>Producto <span class="req-star">*</span></label>
+            <input id="fp-prod" placeholder="Nombre del producto">
+          </div>
+          <div class="field">
+            <label>Lote <span class="req-star">*</span></label>
+            <input id="fp-lote" placeholder="Ej: L240118">
+          </div>
+          <div class="field">
+            <label>Material de empaque</label>
+            <input id="fp-empaque" placeholder="Ej: Blíster PVC/PVDC">
+          </div>
+          <div class="field">
+            <label>Motivo del ensayo</label>
+            <input id="fp-motivo" placeholder="Ej: Estabilidad en curso 12 meses">
+          </div>
+        </div>
+
+        <div class="form-section-head">Condiciones y fechas</div>
+        <div class="form-grid">
+
+          <!-- Condiciones de almacenamiento: temp + HR separadas -->
+          <div class="field full-col">
+            <label>Condiciones de almacenamiento <span class="req-star">*</span></label>
+            <div class="cond-builder">
+              <!-- Temperatura -->
+              <div class="cond-group">
+                <div class="cond-group-title">Temperatura</div>
+                <div class="cond-row">
+                  <select id="fp-temp-tipo" class="cond-tipo-sel" onchange="updateCondPreview()">
+                    <option value="exacta">Valor exacto</option>
+                    <option value="rango">Rango</option>
+                  </select>
+                  <div id="cond-temp-exacta" class="cond-sub">
+                    <input id="fp-temp-val" type="number" step="0.1" placeholder="Ej: 25" class="cond-num" oninput="updateCondPreview()">
+                    <span class="cond-unit">°C</span>
+                  </div>
+                  <div id="cond-temp-rango" class="cond-sub hidden">
+                    <input id="fp-temp-min" type="number" step="0.1" placeholder="Mín" class="cond-num-sm" oninput="updateCondPreview()">
+                    <span class="cond-sep">–</span>
+                    <input id="fp-temp-max" type="number" step="0.1" placeholder="Máx" class="cond-num-sm" oninput="updateCondPreview()">
+                    <span class="cond-unit">°C</span>
+                  </div>
+                </div>
+              </div>
+              <div class="cond-slash">/</div>
+              <!-- Humedad relativa -->
+              <div class="cond-group">
+                <div class="cond-group-title">Humedad relativa</div>
+                <div class="cond-row">
+                  <select id="fp-hr-tipo" class="cond-tipo-sel" onchange="updateCondPreview()">
+                    <option value="exacta">Valor exacto</option>
+                    <option value="rango">Rango</option>
+                    <option value="na">N/A</option>
+                  </select>
+                  <div id="cond-hr-exacta" class="cond-sub">
+                    <input id="fp-hr-val" type="number" step="0.1" placeholder="Ej: 60" class="cond-num" oninput="updateCondPreview()">
+                    <span class="cond-unit">% HR</span>
+                  </div>
+                  <div id="cond-hr-rango" class="cond-sub hidden">
+                    <input id="fp-hr-min" type="number" step="0.1" placeholder="Mín" class="cond-num-sm" oninput="updateCondPreview()">
+                    <span class="cond-sep">–</span>
+                    <input id="fp-hr-max" type="number" step="0.1" placeholder="Máx" class="cond-num-sm" oninput="updateCondPreview()">
+                    <span class="cond-unit">% HR</span>
+                  </div>
+                </div>
+              </div>
+              <!-- Preview -->
+              <div class="cond-preview-block">
+                <span class="cond-preview-lbl">Vista previa:</span>
+                <span class="cond-preview-val" id="cond-preview">—</span>
+              </div>
+            </div>
+            <span class="err-msg hidden" id="err-cond">Complete al menos la temperatura</span>
+          </div>
+
+          <div class="field">
+            <label>Tiempo de estabilidad <span class="req-star">*</span></label>
+            <select id="fp-tiempo">
+              <option value="">Seleccionar...</option>
+              <option>3 meses</option><option>6 meses</option><option>9 meses</option>
+              <option>12 meses</option><option>18 meses</option><option>24 meses</option><option>36 meses</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Fecha de elaboración</label>
+            <input type="date" id="fp-elab">
+          </div>
+          <div class="field">
+            <label>Fecha de entrada a cámara</label>
+            <input type="date" id="fp-camara">
+          </div>
+          <div class="field">
+            <label>Fecha de ingreso <span class="req-star">*</span></label>
+            <input type="date" id="fp-ingreso">
+            <span class="err-msg hidden" id="err-ingreso">Este campo es obligatorio</span>
+          </div>
+          <div class="field">
+            <label>Fecha teórica de análisis <span class="req-star">*</span></label>
+            <input type="date" id="fp-teorica">
+            <span class="err-msg hidden" id="err-teorica">Debe ser posterior a fecha de ingreso</span>
+          </div>
+          <div class="field">
+            <label>Fecha límite de análisis <span class="req-star">*</span></label>
+            <input type="date" id="fp-limite">
+            <span class="err-msg hidden" id="err-limite">Debe ser posterior a fecha teórica</span>
+          </div>
+          <div class="field"><label>Fecha teórica de salida</label><input type="date" id="fp-salida"></div>
+          <div class="field"><label>Fecha teórica de liberación</label><input type="date" id="fp-libteor"></div>
+          <div class="field"><label>Fecha de liberación</label><input type="date" id="fp-lib"></div>
+          <div class="field"><label>Semana de aprobación</label><input id="fp-semana" placeholder="Ej: S12-2026"></div>
+          <div class="field"><label>Corredor de muestreo</label><input id="fp-corredor" placeholder="Ej: ±5%"></div>
+          <div class="field"><label>Límite inferior de muestreo</label><input id="fp-lim-inf" placeholder="Ej: 90.0%"></div>
+          <div class="field"><label>Límite superior de muestreo</label><input id="fp-lim-sup" placeholder="Ej: 110.0%"></div>
+        </div>
+
+        <div class="form-section-head">Estado del estudio</div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Estado de estabilidad <span class="req-star">*</span></label>
+            <select id="fp-estado"><option>Pendiente</option><option>En proceso</option><option>Completo</option><option>Cancelado</option></select>
+          </div>
+          <div class="field"><label>Cumplió</label><select id="fp-cumplio"><option value="">—</option><option>Sí</option><option>No</option></select></div>
+          <div class="field"><label>Cumplimiento de estabilidad</label><select id="fp-cumpl"><option value="">—</option><option>Sí</option><option>No</option></select></div>
+          <div class="field"><label>Aprobación final</label><select id="fp-aprob"><option value="">—</option><option>Aprobado</option><option>Rechazado</option><option>Pendiente</option></select></div>
+          <div class="field"><label>Status</label><input id="fp-status" placeholder="Ej: En revisión QA"></div>
+          <div class="field"><label>Condiciones de salida</label><input id="fp-condsal" placeholder="Ej: Conformes"></div>
+          <div class="field full-col" id="cancel-block" style="display:none">
+            <label>Motivo de cancelación <span class="req-star">*</span></label>
+            <textarea id="fp-cancel" placeholder="Describir el motivo del estudio cancelado..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-section-head">OOS — Out of Specification</div>
+        <div class="form-grid">
+          <div class="field"><label>OOS</label><select id="fp-oos"><option>No</option><option>Sí</option></select></div>
+          <div class="field full-col" id="oos-block" style="display:none">
+            <label>Observaciones OOS <span class="req-star">*</span></label>
+            <textarea id="fp-oos-obs" placeholder="Describir el resultado fuera de especificación y acciones tomadas..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-section-head">Análisis fisicoquímico (FQ)</div>
+        <div class="form-grid">
+          <div class="field"><label>Fecha análisis FQ inicio</label><input type="date" id="fp-fqi"></div>
+          <div class="field"><label>Fecha análisis FQ fin</label><input type="date" id="fp-fqf"></div>
+          <div class="field"><label>Fecha validación FQ</label><input type="date" id="fp-fqv"></div>
+          <div class="field"><label>Analista FQ</label><input id="fp-anfq" placeholder="Nombre del analista"></div>
+        </div>
+
+        <div class="form-section-head">Análisis microbiológico</div>
+        <div class="form-grid">
+          <div class="field"><label>¿Lleva microbiología?</label><select id="fp-micro"><option>No</option><option>Sí</option></select></div>
+          <div class="field"><label>Analista microbiología</label><input id="fp-anmicro" placeholder="Nombre del analista" disabled></div>
+          <div class="field" id="micro-ini" style="display:none"><label>F. muestreo micro inicio</label><input type="date" id="fp-msi"></div>
+          <div class="field" id="micro-fin" style="display:none"><label>F. muestreo micro fin</label><input type="date" id="fp-msf"></div>
+          <div class="field" id="micro-na" style="display:none"><label>Aplica muestreo</label><select id="fp-micro-na"><option>Aplica</option><option>No aplica</option></select></div>
+        </div>
+
+        <div class="form-section-head">Resultados de análisis</div>
+        <div class="form-grid">
+          <div class="field"><label>Contenido</label><input id="fp-contenido" placeholder="Ej: 98.5%"></div>
+          <div class="field"><label>Producto de degradación 1</label><input id="fp-deg1" placeholder="Ej: 0.12%"></div>
+          <div class="field"><label>Producto de degradación 2</label><input id="fp-deg2" placeholder="Ej: 0.08%"></div>
+          <div class="field"><label>Producto de degradación 3</label><input id="fp-deg3" placeholder="Ej: ND"></div>
+          <div class="field"><label>Disolución</label><input id="fp-disol" placeholder="Ej: Q = 87%"></div>
+          <div class="field full-col"><label>Observaciones generales</label><textarea id="fp-obs" placeholder="Notas adicionales del estudio..."></textarea></div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-ghost" id="btn-cancel-form-2">Cancelar</button>
+          <button class="btn btn-primary" id="btn-submit">Guardar estudio</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== AUDIT ===== -->
+  <section class="page" id="pg-audit">
+    <div class="filter-bar">
+      <input class="filter-input" placeholder="Buscar por estudio o usuario..." style="width:220px">
+      <select class="filter-select"><option>Todas las acciones</option><option>Creación</option><option>Edición</option><option>Cambio de estado</option><option>Aprobación</option></select>
+      <input type="date" class="filter-select">
+      <input type="date" class="filter-select">
+      <button class="btn btn-ghost" id="btn-export-audit">Exportar auditoría CSV</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Registro de cambios — inmutable (GxP / 21 CFR Part 11)</div>
+      <div id="audit-list"></div>
+    </div>
+  </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
